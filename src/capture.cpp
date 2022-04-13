@@ -33,7 +33,6 @@ namespace cv_camera {
         if (node_.getParam("camera_info_url", url)) {
             if (info_manager_.validateURL(url)) {
                 info_manager_.loadCameraInfo(url);
-                undistorted_params_valid_ = true;
             }
         }
 
@@ -160,7 +159,6 @@ namespace cv_camera {
         if (node_.getParam("camera_info_url", url)) {
             if (info_manager_.validateURL(url)) {
                 info_manager_.loadCameraInfo(url);
-                undistorted_params_valid_ = true;
             }
         }
     }
@@ -207,7 +205,7 @@ namespace cv_camera {
             std::string distortion_model_str = distortion_models_ss.str();
             boost::algorithm::to_lower(distortion_model_str);
 
-            if (undistorted_on_ and undistorted_params_valid_) {
+            if (undistorted_on_ and info_manager_.isCalibrated()) {
                 undistort(distortion_model_str);
             } else {
                 bridge_.image = image_;

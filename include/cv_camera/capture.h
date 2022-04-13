@@ -241,7 +241,6 @@ namespace cv_camera {
         bool flip_image_{false};                // Image to be flipped, default false
         int image_flip_code_{-1};            // Default horizontal and vertical
 
-        bool undistorted_params_valid_{false};
         bool undistorted_on_{false};
         double undistorted_fov_scale_{1.0};
         double undistorted_resolution_scale_{1.0};
