@@ -33,6 +33,7 @@ namespace cv_camera {
         if (node_.getParam("camera_info_url", url)) {
             if (info_manager_.validateURL(url)) {
                 info_manager_.loadCameraInfo(url);
+                undistorted_params_valid_ = true;
             }
         }
 
@@ -159,6 +160,7 @@ namespace cv_camera {
         if (node_.getParam("camera_info_url", url)) {
             if (info_manager_.validateURL(url)) {
                 info_manager_.loadCameraInfo(url);
+                undistorted_params_valid_ = true;
             }
         }
     }
