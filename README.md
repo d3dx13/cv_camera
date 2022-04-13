@@ -35,6 +35,9 @@ If no calibration data is set, it has dummy values except for width and height.
 * `~camera_name` (*bool*, default: same as `frame_id`) – camera name for `camera_info_manager`.
 * `~flip_image` (*bool*, default: false) – flip the image according to image_flip_code.
 * `~image_flip_code` (*int*, default: -1) – code to flip the image see cv::flip() for description.
+* `~undistorted_on` (*bool*, default: false) – if true, then distortion will be removed from the image before publishing to the topics, and the distortion matrices will be corrected according to the new parameters.
+* `~undistorted_fov_scale` (*double*, default: 1.0) – coefficient of multiplication of camera angle of view after distortion removal.
+* `~undistorted_resolution_scale` (*double*, default: 1.0) – coefficient of change of resolution in relation to the initial one after distortion removal. We recommend choosing undistorted_resolution_scale=undistorted_fov_scale if you want to keep all the details in the image.
 
 Supports CV_CAP_PROP_*, by below params.
 

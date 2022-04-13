@@ -76,9 +76,6 @@ namespace cv_camera {
     }
 
     void Capture::undistort(std::string distortion_model) {
-        distortion_model.compare("fisheye") == 0;
-
-
         info_.K[0] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
         info_.K[4] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
 
@@ -109,7 +106,6 @@ namespace cv_camera {
                 cv::initUndistortRectifyMap(K, D, cv::Mat(), K_new, dim_new, CV_16SC2, undistorted_map1,
                                             undistorted_map2);
             }
-
 
             resize(image_, bridge_.image, dim_new, cv::INTER_LINEAR);
 
