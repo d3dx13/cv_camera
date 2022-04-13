@@ -1,4 +1,4 @@
-ROS OpenCV camera driver
+ROS OpenCV camera driver supporting fisheye and pinhole distortion correction
 ========================
 
 **The solution was based on "https://github.com/Skammi/cv_camera", a fork of "https://github.com/OTL/cv_camera"**
