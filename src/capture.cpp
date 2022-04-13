@@ -22,6 +22,10 @@ namespace cv_camera {
         // Get the flip parameters
         node_.param("flip_image", flip_image_, flip_image_);
         node_.param("image_flip_code", image_flip_code_, image_flip_code_);
+
+        node_.param("undistorted_on", undistorted_on_, undistorted_on_);
+        node_.param("undistorted_fov_scale", undistorted_fov_scale_, undistorted_fov_scale_);
+        node_.param("undistorted_resolution_scale", undistorted_resolution_scale_, undistorted_resolution_scale_);
     }
 
     void Capture::loadCameraInfo() {
@@ -54,21 +58,70 @@ namespace cv_camera {
     }
 
     void Capture::rescaleCameraInfo(int width, int height) {
-        double width_coeff = static_cast<double>(width) / info_.width;
-        double height_coeff = static_cast<double>(height) / info_.height;
-        info_.width = width;
-        info_.height = height;
+        double width_coeff = static_cast<double>(width) / info_original_.width;
+        double height_coeff = static_cast<double>(height) / info_original_.height;
+        info_original_.width = width;
+        info_original_.height = height;
 
         // See http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html for clarification
-        info_.K[0] *= width_coeff;
-        info_.K[2] *= width_coeff;
-        info_.K[4] *= height_coeff;
-        info_.K[5] *= height_coeff;
+        info_original_.K[0] *= width_coeff;
+        info_original_.K[2] *= width_coeff;
+        info_original_.K[4] *= height_coeff;
+        info_original_.K[5] *= height_coeff;
 
-        info_.P[0] *= width_coeff;
-        info_.P[2] *= width_coeff;
-        info_.P[5] *= height_coeff;
-        info_.P[6] *= height_coeff;
+        info_original_.P[0] *= width_coeff;
+        info_original_.P[2] *= width_coeff;
+        info_original_.P[5] *= height_coeff;
+        info_original_.P[6] *= height_coeff;
+    }
+
+    void Capture::undistort(std::string distortion_model) {
+        distortion_model.compare("fisheye") == 0;
+
+
+        info_.K[0] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
+        info_.K[4] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
+
+        info_.P[0] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
+        info_.P[5] *= undistorted_resolution_scale_ / undistorted_fov_scale_;
+
+        info_.K[2] *= undistorted_resolution_scale_;
+        info_.K[5] *= undistorted_resolution_scale_;
+
+        info_.P[2] *= undistorted_resolution_scale_;
+        info_.P[6] *= undistorted_resolution_scale_;
+
+        double D_array[4];
+        std::copy(info_original_.D.begin(), info_original_.D.begin() + 4, D_array);
+
+        cv::Mat D(1, 4, CV_64F, D_array);
+        cv::Mat K(3, 3, CV_64F, info_original_.K.c_array());
+        cv::Mat K_new(3, 3, CV_64F, info_.K.c_array());
+
+        if (undistorted_map_recalculate) {
+            cv::Size dim_new;
+            dim_new.height = (int) round(image_.rows * undistorted_resolution_scale_);
+            dim_new.width = (int) round(image_.cols * undistorted_resolution_scale_);
+            if (distortion_model.compare("fisheye") == 0) {
+                cv::fisheye::initUndistortRectifyMap(K, D, cv::Mat(), K_new, dim_new, CV_16SC2, undistorted_map1,
+                                                     undistorted_map2);
+            } else {
+                cv::initUndistortRectifyMap(K, D, cv::Mat(), K_new, dim_new, CV_16SC2, undistorted_map1,
+                                            undistorted_map2);
+            }
+
+
+            resize(image_, bridge_.image, dim_new, cv::INTER_LINEAR);
+
+            undistorted_map_recalculate = false;
+        }
+
+        cv::remap(image_, bridge_.image, undistorted_map1, undistorted_map2, cv::INTER_LINEAR,
+                  cv::BORDER_CONSTANT, cv::Scalar());
+
+        double D_array_zero[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+        info_.D = cv::Mat(1, 5, CV_64F, D_array_zero);
+        info_.distortion_model = "none";
     }
 
     void Capture::open(int32_t device_id) {
@@ -115,46 +168,52 @@ namespace cv_camera {
     }
 
     bool Capture::capture() {
-        if (cap_.read(bridge_.image)) {
+        if (cap_.read(image_)) {
             ros::Time stamp = ros::Time::now() - capture_delay_;
-            bridge_.encoding = bridge_.image.channels() == 3 ? enc::BGR8 : enc::MONO8;
+            bridge_.encoding = image_.channels() == 3 ? enc::BGR8 : enc::MONO8;
             bridge_.header.stamp = stamp;
             bridge_.header.frame_id = frame_id_;
 
             // Skammi extension
             // Flip the image?
             if (flip_image_) {
-                cv::flip(bridge_.image, bridge_.image, image_flip_code_);
+                cv::flip(image_, image_, image_flip_code_);
             }
 
-            info_ = info_manager_.getCameraInfo();
-            if (info_.height == 0 && info_.width == 0) {
-                info_.height = bridge_.image.rows;
-                info_.width = bridge_.image.cols;
-            } else if (info_.height != bridge_.image.rows || info_.width != bridge_.image.cols) {
+            info_original_ = info_manager_.getCameraInfo();
+
+            if (info_original_.height == 0 && info_original_.width == 0) {
+                info_original_.height = bridge_.image.rows;
+                info_original_.width = bridge_.image.cols;
+            } else if (info_original_.height != bridge_.image.rows ||
+                       info_original_.width != bridge_.image.cols) {
                 if (rescale_camera_info_) {
-                    int old_width = info_.width;
-                    int old_height = info_.height;
-                    rescaleCameraInfo(bridge_.image.cols, bridge_.image.rows);
+                    int old_width = info_original_.width;
+                    int old_height = info_original_.height;
+                    rescaleCameraInfo(image_.cols, image_.rows);
                     ROS_INFO_ONCE("Camera calibration automatically rescaled from %dx%d to %dx%d",
-                                  old_width, old_height, bridge_.image.cols, bridge_.image.rows);
+                                  old_width, old_height, image_.cols, image_.rows);
                 } else {
                     ROS_WARN_ONCE("Calibration resolution %dx%d does not match camera resolution %dx%d. "
                                   "Use rescale_camera_info param for rescaling",
-                                  info_.width, info_.height, bridge_.image.cols, bridge_.image.rows);
+                                  info_original_.width, info_original_.height, image_.cols, image_.rows);
                 }
             }
-            info_.header.stamp = stamp;
-            info_.header.frame_id = frame_id_;
+            info_original_.header.stamp = stamp;
+            info_original_.header.frame_id = frame_id_;
 
-            //sensor_msgs::distortion_models::
+            info_ = info_original_;
 
-            std::stringstream ss;
-            ss << info_.distortion_model;
-            ROS_WARN("info_ %s", ss.str().c_str());
+            std::stringstream distortion_models_ss;
+            distortion_models_ss << info_original_.distortion_model;
+            std::string distortion_model_str = distortion_models_ss.str();
+            boost::algorithm::to_lower(distortion_model_str);
 
-            //ROS_WARN("info_ %lf", info_.header.stamp.toSec());
-
+            if (undistorted_on_) {
+                undistort(distortion_model_str);
+            } else {
+                bridge_.image = image_;
+            }
 
             return true;
         }
@@ -165,7 +224,6 @@ namespace cv_camera {
         // cv::fisheye::
         // cv::fisheye::stereoRectify()
         pub_.publish(*getImageMsgPtr(), info_);
-
     }
 
     bool Capture::setPropertyFromParam(int property_id, const std::string &param_name) {
