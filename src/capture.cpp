@@ -88,6 +88,9 @@ namespace cv_camera {
         info_.P[2] *= undistorted_resolution_scale_;
         info_.P[6] *= undistorted_resolution_scale_;
 
+        info_.width = (int) round(image_.cols * undistorted_resolution_scale_);
+        info_.height = (int) round(image_.rows * undistorted_resolution_scale_);
+
         double D_array[4];
         std::copy(info_original_.D.begin(), info_original_.D.begin() + 4, D_array);
 
@@ -97,8 +100,8 @@ namespace cv_camera {
 
         if (undistorted_map_recalculate) {
             cv::Size dim_new;
-            dim_new.height = (int) round(image_.rows * undistorted_resolution_scale_);
-            dim_new.width = (int) round(image_.cols * undistorted_resolution_scale_);
+            dim_new.height = info_.height;
+            dim_new.width = info_.width;
             if (distortion_model.compare("fisheye") == 0) {
                 cv::fisheye::initUndistortRectifyMap(K, D, cv::Mat(), K_new, dim_new, CV_16SC2, undistorted_map1,
                                                      undistorted_map2);
@@ -217,8 +220,6 @@ namespace cv_camera {
     }
 
     void Capture::publish() {
-        // cv::fisheye::
-        // cv::fisheye::stereoRectify()
         pub_.publish(*getImageMsgPtr(), info_);
     }
 
