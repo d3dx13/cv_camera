@@ -11,7 +11,9 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/distortion_models.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/opencv.hpp>
 #include <camera_info_manager/camera_info_manager.h>
 
 /**

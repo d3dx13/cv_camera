@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/d3dx13/catkin_ws/src/cv_camera/cmake-build-debug/devel/setup.sh
