@@ -4,7 +4,7 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "cv_camera");
+  ros::init(argc, argv, "camera");
   ros::NodeHandle private_node("~");
   cv_camera::Driver driver(private_node, private_node);
 
