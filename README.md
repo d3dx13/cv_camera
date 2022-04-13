@@ -13,6 +13,12 @@ cv_camera_node
 This node uses [camera_info_manager](http://wiki.ros.org/camera_info_manager) for dealing with camera_info.
 If no calibration data is set, it has dummy values except for width and height.
 
+### Example with distortion correction
+
+```bash
+rosrun cv_camera cv_camera_node _image_width:=640 _cv_cap_prop_frame_width:=640 _image_height:=480 _cv_cap_prop_frame_height:=480 _rate:=30 _cv_cap_prop_fps:=30 _rescale_camera_info:=true _camera_info_url:="file:///home/${USER}/640x480.yaml"  _undistorted_fov_scale:=1.0 _undistorted_resolution_scale:=1.0 _undistorted_on:=true
+```
+
 ### Publish
 
 * `~image_raw` (*sensor_msgs/Image*)
