@@ -207,7 +207,7 @@ namespace cv_camera {
             std::string distortion_model_str = distortion_models_ss.str();
             boost::algorithm::to_lower(distortion_model_str);
 
-            if (undistorted_on_) {
+            if (undistorted_on_ and undistorted_params_valid_) {
                 undistort(distortion_model_str);
             } else {
                 bridge_.image = image_;
