@@ -124,7 +124,7 @@ namespace cv_camera {
     }
 
     void Capture::open(int32_t device_id) {
-        cap_.open(device_id);
+        cap_.open(device_id, cv::CAP_V4L);
         if (!cap_.isOpened()) {
             std::stringstream stream;
             stream << "device_id" << device_id << " cannot be opened";
@@ -150,7 +150,7 @@ namespace cv_camera {
     }
 
     void Capture::openFile(const std::string &file_path) {
-        cap_.open(file_path);
+        cap_.open(file_path, cv::CAP_V4L);
         if (!cap_.isOpened()) {
             std::stringstream stream;
             stream << "file " << file_path << " cannot be opened";
